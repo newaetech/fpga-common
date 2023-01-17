@@ -33,6 +33,7 @@ module fifo_sync #(
     input  wire                         clk, 
     input  wire                         rst_n,
     input  wire [31:0]                  full_threshold_value,
+    input  wire [31:0]                  empty_threshold_value,
     input  wire                         wen, 
     input  wire [pDATA_WIDTH-1:0]       wdata,
     output wire                         full,
@@ -43,6 +44,7 @@ module fifo_sync #(
     output wire [pDATA_WIDTH-1:0]       rdata,
     output wire                         empty,
     output wire                         almost_empty,
+    output wire                         empty_threshold,
     output reg                          underflow
 );
 
@@ -60,6 +62,7 @@ module fifo_sync #(
                              (pDEPTH == 65536)? 16 : 0;
 
     wire [pADDR_WIDTH-1:0] full_threshold_value_trimmed = full_threshold_value[pADDR_WIDTH-1:0];
+    wire [pADDR_WIDTH-1:0] empty_threshold_value_trimmed = empty_threshold_value[pADDR_WIDTH-1:0];
     wire [pADDR_WIDTH-1:0] waddr, raddr;
     reg  [pADDR_WIDTH:0] wptr, rptr;
 
@@ -242,8 +245,11 @@ module fifo_sync #(
     wire [pADDR_WIDTH+1:0] adjust_wt1 = {1'b0, wptr};
     wire [pADDR_WIDTH+1:0] adjust_wt2 = {1'b1, wptr};
     wire case2 = (~wptr[pADDR_WIDTH] && rptr[pADDR_WIDTH]);
-
     assign full_threshold = (adjust_rt <= ((case2)? adjust_wt2 : adjust_wt1));
+
+    // similar idea is used for programmable almost empty threshold:
+    wire [pADDR_WIDTH+1:0] rptr_plust = {1'b0, rptr} + {2'b0, empty_threshold_value_trimmed};
+    assign empty_threshold = (((case2)? adjust_wt2 : adjust_wt1) <= rptr_plust);
 
 endmodule
 

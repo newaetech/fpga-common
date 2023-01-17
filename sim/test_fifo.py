@@ -329,7 +329,17 @@ class FifoTest(object):
                 self.harness.inc_error()
                 self.dut._log.error("%6s underflow!" % self.name)
 
-            # very loose checks on almost/empty:
+            # loose checks on programmable empty threshold:
+            if self.dut_empty_threshold.value == 0:
+                if self.actual_fill_state < self.empty_threshold - self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s missing empty threshold flag! (actual fill state: %d; programmed threshold: %d)" % (self.name, self.actual_fill_state, self.empty_threshold))
+            else: # dut_empty_threshold = 1
+                if self.actual_fill_state > self.empty_threshold + self.fill_state_slop + 1:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s unexpected empty threshold flag! (actual fill state: %d; programmed threshold: %d)" % (self.name, self.actual_fill_state, self.empty_threshold))
+
+            # even looser checks on almost/empty:
             if self.empty:
                 if self.actual_fill_state > 1 + self.fill_state_slop:
                     self.harness.inc_error()

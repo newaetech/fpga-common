@@ -27,6 +27,7 @@ module fifos_cocowrapper(
     input  wire                         clk, 
     input  wire                         rst_n,
     input  wire [31:0]                  full_threshold_value, // TODO: connect to testbench
+    input  wire [31:0]                  empty_threshold_value, // TODO: connect to testbench
     input  wire                         wen, 
     input  wire [15:0]                  wdata,
     output wire                         full,
@@ -75,6 +76,7 @@ generate
             .clk                        (clk                  ),
             .rst_n                      (rst_n                ),
             .full_threshold_value       (32'd384              ),
+            .empty_threshold_value      (32'd128              ),
             .wen                        (wen                  ),
             .wdata                      (wdata                ),
             .full                       (full                 ),
@@ -85,6 +87,7 @@ generate
             .rdata                      (rdata                ),
             .empty                      (empty                ),
             .almost_empty               (almost_empty         ),
+            .empty_threshold            (empty_threshold      ),
             .underflow                  (underflow            )
         );
     end
@@ -102,6 +105,7 @@ generate
             .wrst_n                     (rst_n                ),
             .rrst_n                     (rst_n                ),
             .wfull_threshold_value      (32'd384              ),
+            .rempty_threshold_value     (32'd128              ),
             .wen                        (wen                  ),
             .wdata                      (wdata                ),
             .wfull                      (full                 ),
@@ -112,6 +116,7 @@ generate
             .rdata                      (rdata                ),
             .rempty                     (empty                ),
             .ralmost_empty              (almost_empty         ),
+            .rempty_threshold           (empty_threshold      ),
             .runderflow                 (underflow            )
         );
     end
