@@ -225,17 +225,13 @@ module fifo_sync #(
 
     assign empty = (wptr == rptr);
     assign almost_empty = (wptr == rptr + 1) || empty;
-    //wire almost_full = (wptr + 1 == rptr) || full;
+
     assign full = ( (wptr[pADDR_WIDTH] != rptr[pADDR_WIDTH]) &&
                     (wptr[pADDR_WIDTH-1:0] == rptr[pADDR_WIDTH-1:0]) );
 
     wire [pADDR_WIDTH:0] wptr_plus1 = wptr + 1;
     assign almost_full = ( (wptr_plus1[pADDR_WIDTH] != rptr[pADDR_WIDTH]) &&
                            (wptr_plus1[pADDR_WIDTH-1:0] == rptr[pADDR_WIDTH-1:0]) );
-
-    wire [pADDR_WIDTH:0] wptr_plus2 = wptr + 2;
-    //assign almost_full = ( (wptr_plus2[pADDR_WIDTH] != rptr[pADDR_WIDTH]) &&
-    //                       (wptr_plus2[pADDR_WIDTH-1:0] == rptr[pADDR_WIDTH-1:0]) ) || full;
 
     // programmable almost full threshold
     // The comparison is a bit tricky but boils down to: add an MSB (set to 0)

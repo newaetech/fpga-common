@@ -83,12 +83,13 @@ class Harness(object):
 
 
 class FifoTest(object):
-    def __init__(self, dut, harness, name, fwft, sync, full_threshold, empty_threshold, dut_full, dut_empty, dut_almost_full, dut_almost_empty, dut_write, dut_wdata, dut_read, dut_rdata, dut_overflow, dut_underflow):
+    def __init__(self, dut, harness, name, fwft, sync, depth, full_threshold, empty_threshold, dut_full, dut_empty, dut_almost_full, dut_almost_empty, dut_write, dut_wdata, dut_read, dut_rdata, dut_overflow, dut_underflow, dut_full_threshold, dut_empty_threshold):
         self.dut = dut
         self.harness = harness
         self.name = name
         self.fwft = fwft
         self.sync = sync
+        self.depth = depth
         self.full_threshold = full_threshold
         self.empty_threshold = empty_threshold
         self.dut_full = dut_full
@@ -101,6 +102,8 @@ class FifoTest(object):
         self.dut_rdata = dut_rdata
         self.dut_overflow = dut_overflow
         self.dut_underflow = dut_underflow
+        self.dut_full_threshold = dut_full_threshold
+        self.dut_empty_threshold = dut_empty_threshold
         self._coro = None
         self._wcoro = None
         self._rcoro = None
@@ -119,9 +122,11 @@ class FifoTest(object):
         if sync:
             self.rclk = dut.clk
             self.wclk = dut.clk
+            self.fill_state_slop = 1
         else:
             self.rclk = dut.rclk
             self.wclk = dut.wclk
+            self.fill_state_slop = 16
 
     def start(self) -> None:
         """Start test thread"""
@@ -161,6 +166,8 @@ class FifoTest(object):
 
     async def _write_thread(self) -> None:
         self.dut._log.debug('%6s _write_thread starting' % self.name)
+        await RisingEdge(self.dut.rst_n)
+        await ClockCycles(self.wclk, 5)
         for _ in range(self.harness.reps):
             # Run through a few distinct phases:
             #1- play around the empty point
@@ -198,6 +205,7 @@ class FifoTest(object):
         allow reads to start.
         """
         assert self.empty
+        assert self.almost_empty
         assert self._reads_allowed.empty()
         await self._write(target_fill)
         self._reads_allowed.put_nowait(target_fill+writes)
@@ -278,24 +286,61 @@ class FifoTest(object):
                 self.dut._log.debug("%6s Expected %4x, got %4x" % (self.name, edata, rdata))
 
     async def _over_thread(self) -> None:
-        """ Checks for overflow.
+        """ Checks for overflow and other write-side flags.
         """
         self.dut._log.debug('%6s _over_thread starting' % self.name)
+        await RisingEdge(self.dut.rst_n)
+        await ClockCycles(self.wclk, 5)
         while True:
-            await self.wait_signal(self.dut_overflow, 1, self.wclk)
-            self.harness.inc_error()
-            self.dut._log.error("%6s overflow!" % self.name)
-            break
+            if self.dut_overflow.value:
+                self.harness.inc_error()
+                self.dut._log.error("%6s overflow!" % self.name)
+
+            # loose checks on programmable full threshold:
+            if self.dut_full_threshold.value == 0:
+                if self.actual_fill_state > self.full_threshold + self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s missing full threshold flag! (actual fill state: %d; programmed threshold: %d)" % (self.name, self.actual_fill_state, self.full_threshold))
+            else: # dut_full_threshold = 1
+                if self.actual_fill_state < self.full_threshold - self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s unexpected full threshold flag! (actual fill state: %d; programmed threshold: %d)" % (self.name, self.actual_fill_state, self.full_threshold))
+
+            # even looser checks on almost/full:
+            if self.full:
+                if self.actual_fill_state < self.depth - self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s unexpected full flag! (actual fill state: %d; depth: %d)" % (self.name, self.actual_fill_state, self.depth))
+            if self.almost_full:
+                if self.actual_fill_state < self.depth - 1 - self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s unexpected almost full flag! (actual fill state: %d; depth: %d)" % (self.name, self.actual_fill_state, self.depth))
+
+            await ClockCycles(self.wclk, 1)
 
     async def _under_thread(self) -> None:
-        """ Checks for underflow.
+        """ Checks for underflow and other read-side flags.
         """
         self.dut._log.debug('%6s _under_thread starting' % self.name)
+        await RisingEdge(self.dut.rst_n)
+        await ClockCycles(self.rclk, 5)
         while True:
-            await self.wait_signal(self.dut_underflow, 1, self.rclk)
-            self.harness.inc_error()
-            self.dut._log.error("%6s underflow!" % self.name)
-            break
+            if self.dut_underflow.value:
+                self.harness.inc_error()
+                self.dut._log.error("%6s underflow!" % self.name)
+
+            # very loose checks on almost/empty:
+            if self.empty:
+                if self.actual_fill_state > 1 + self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s unexpected empty flag! (actual fill state: %d)" % (self.name, self.actual_fill_state))
+            if self.almost_empty:
+                if self.actual_fill_state > 2 + self.fill_state_slop:
+                    self.harness.inc_error()
+                    self.dut._log.error("%6s unexpected almost empty flag! (actual fill state: %d)" % (self.name, self.actual_fill_state))
+
+            await ClockCycles(self.rclk, 1)
+
 
     @property
     def full(self):
@@ -336,6 +381,7 @@ async def fifo_test(dut):
         synctest = FifoTest(dut, harness, "sync_normal",
                             fwft = dut.pFWFT.value,
                             sync = dut.pSYNC.value,
+                            depth = 512,
                             full_threshold = 384,
                             empty_threshold = 128,
                             dut_full = dut.full,
@@ -347,7 +393,9 @@ async def fifo_test(dut):
                             dut_read = dut.ren,
                             dut_rdata = dut.rdata,
                             dut_overflow = dut.overflow,
-                            dut_underflow = dut.underflow)
+                            dut_underflow = dut.underflow,
+                            dut_full_threshold = dut.full_threshold,
+                            dut_empty_threshold = dut.empty_threshold)
         harness.register_test(synctest)
 
 

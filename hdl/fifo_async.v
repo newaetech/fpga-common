@@ -236,7 +236,7 @@ module fifo_async #(
     assign ralmost_empty_val = (rgraynext_plus1 == rq2_wptr);
     always @(posedge rclk or negedge rrst_n)
         if (!rrst_n) ralmost_empty <= 1'b1;
-        else ralmost_empty <= ralmost_empty_val;
+        else ralmost_empty <= ralmost_empty_val || rempty_val;
 
 
     // wptr_full module in original code:
