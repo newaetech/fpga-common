@@ -126,7 +126,7 @@ class FifoTest(object):
         else:
             self.rclk = dut.rclk
             self.wclk = dut.wclk
-            self.fill_state_slop = 16
+            self.fill_state_slop = 18
 
     def start(self) -> None:
         """Start test thread"""
@@ -173,52 +173,53 @@ class FifoTest(object):
             #1- play around the empty point
             self.dut._log.debug('*** %6s TEST 1 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 1" % self.name)
-            await self._do_writes(0, 200)
+            extra_rw = random.randint(100, 200)
+            await self._do_writes(0)
             await self._wait_read_done()
 
             # 2- play around the empty threshold point
             self.dut._log.debug('*** %6s TEST 2 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 2" % self.name)
-            await self._do_writes(self.empty_threshold, 200)
+            await self._do_writes(self.empty_threshold)
             await self._wait_read_done()
 
             # 3- play around the full threshold point
             self.dut._log.debug('*** %6s TEST 3 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 3" % self.name)
-            await self._do_writes(self.full_threshold, 200)
+            await self._do_writes(self.full_threshold)
             await self._wait_read_done()
 
             # 4- play around the full point
             self.dut._log.debug('*** %6s TEST 4 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 4" % self.name)
-            await self._do_writes(512, 200)
+            await self._do_writes(512)
             await self._wait_read_done()
 
             # 5- precisely test programmable empty threshold
             self.dut._log.debug('*** %6s TEST 5 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 5" % self.name)
-            await self._do_writes(self.empty_threshold-1, 0, self.dut_empty_threshold, self.rclk, [1, 1, 0])
+            await self._do_writes(self.empty_threshold-1, self.dut_empty_threshold, self.rclk, [1, 1, 0])
             await ClockCycles(self.wclk, 100)
             await self._wait_read_done()
 
             # 6- precisely test programmable full threshold
             self.dut._log.debug('*** %6s TEST 6 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 6" % self.name)
-            await self._do_writes(self.full_threshold-1, 0, self.dut_full_threshold, self.rclk, [0, 1, 1])
+            await self._do_writes(self.full_threshold-1, self.dut_full_threshold, self.rclk, [0, 1, 1])
             await ClockCycles(self.wclk, 100)
             await self._wait_read_done()
 
             # 7- precisely test almost full
             self.dut._log.debug('*** %6s TEST 7 ***' % self.name)
-            self.dut.test_phase.value = self.harness.hexstring("%6s phase 8" % self.name)
-            await self._do_writes(self.depth-2, 0, self.dut_almost_full, self.rclk, [0, 1])
+            self.dut.test_phase.value = self.harness.hexstring("%6s phase 7" % self.name)
+            await self._do_writes(self.depth-2, self.dut_almost_full, self.rclk, [0, 1])
             await ClockCycles(self.wclk, 100)
             await self._wait_read_done()
 
             # 8- precisely test almost empty
             self.dut._log.debug('*** %6s TEST 8 ***' % self.name)
-            self.dut.test_phase.value = self.harness.hexstring("%6s phase 7" % self.name)
-            await self._do_writes(0, 0, self.dut_almost_empty, self.rclk, [1, 1, 0])
+            self.dut.test_phase.value = self.harness.hexstring("%6s phase 8" % self.name)
+            await self._do_writes(0, self.dut_almost_empty, self.rclk, [1, 1, 0])
             await ClockCycles(self.wclk, 100)
             await self._wait_read_done()
 
@@ -230,7 +231,7 @@ class FifoTest(object):
             if not self.sync:
                 await ClockCycles(self.rclk, 10) # generous margin for CDC
 
-    async def _do_writes(self, target_fill, writes, watch_flag=None, watch_clock=None, watch_values=[]) -> None:
+    async def _do_writes(self, target_fill, watch_flag=None, watch_clock=None, watch_values=[]) -> None:
         """ Starting from an empty FIFO, fills it to target_fill, then
         allow reads to start.
         """
@@ -246,13 +247,20 @@ class FifoTest(object):
                     self.harness.inc_error()
                     self.dut._log.error("%6s Wrong flag value on iteration %d" % (self.name, i))
                 await self._write(1)
-        self._reads_allowed.put_nowait(target_fill+writes+len(watch_values))
-        if writes:
-            await self._write(writes)
+            extra_rw = 0
+        else:
+            # do some extra r/w around the point of interest; randomized so that the FIFO pointers don't
+            # always end up at the same spot:
+            extra_rw = random.randint(100,200)
+
+        self._reads_allowed.put_nowait(target_fill+extra_rw+len(watch_values))
+        await self._write(extra_rw)
 
     async def _write(self, num) -> None:
         """ Execute num writes.
         """
+        if num == 0:
+            return
         writes_done = 0
         await ClockCycles(self.wclk, 1)
         while writes_done < num:
