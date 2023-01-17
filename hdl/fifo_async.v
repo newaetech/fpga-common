@@ -271,7 +271,7 @@ module fifo_async #(
                                                   wq2_rptr[pADDR_WIDTH-2:0]});
     always @(posedge wclk or negedge wrst_n)
         if (!wrst_n) walmost_full <= 1'b0;
-        else walmost_full <= walmost_full_val;
+        else walmost_full <= walmost_full_val || wfull;
 
 
 

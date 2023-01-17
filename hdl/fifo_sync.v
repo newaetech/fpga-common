@@ -234,7 +234,7 @@ module fifo_sync #(
 
     wire [pADDR_WIDTH:0] wptr_plus1 = wptr + 1;
     assign almost_full = ( (wptr_plus1[pADDR_WIDTH] != rptr[pADDR_WIDTH]) &&
-                           (wptr_plus1[pADDR_WIDTH-1:0] == rptr[pADDR_WIDTH-1:0]) );
+                           (wptr_plus1[pADDR_WIDTH-1:0] == rptr[pADDR_WIDTH-1:0]) ) || full;
 
     // programmable almost full threshold
     // The comparison is a bit tricky but boils down to: add an MSB (set to 0)
