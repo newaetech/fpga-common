@@ -1,5 +1,6 @@
 *.pyc
 *.vcd
+*.vvp
 *.fst
 *.sw*
 a.out

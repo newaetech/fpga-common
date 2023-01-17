@@ -29,6 +29,7 @@ tests.append(dict(name  = 'sync_normal',
              testcase = 'fifo_test',
              frequency = 1,
              FWFT = 0,
+             SYNC = 1,
              REPS = 4,
              description = 'Normal sync fifo.'))
 
@@ -36,8 +37,26 @@ tests.append(dict(name  = 'sync_fwft',
              testcase = 'fifo_test',
              frequency = 1,
              FWFT = 1,
+             SYNC = 1,
              REPS = 4,
              description = 'First-word-fall-through sync fifo.'))
+
+tests.append(dict(name  = 'async_normal',
+             testcase = 'fifo_test',
+             frequency = 1,
+             FWFT = 0,
+             SYNC = 0,
+             REPS = 4,
+             description = 'Normal async fifo.'))
+
+tests.append(dict(name  = 'async_fwft',
+             testcase = 'fifo_test',
+             frequency = 1,
+             FWFT = 1,
+             SYNC = 0,
+             REPS = 4,
+             description = 'First-word-fall-through async fifo.'))
+
 
 def print_tests():
     print("Available tests:")

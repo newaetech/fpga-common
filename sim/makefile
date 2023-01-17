@@ -6,8 +6,9 @@ TIMEOUT_CYCLES=50000
 DUMP=0
 COCOTB_LOG_LEVEL=INFO
 VIVADO_VERSION=2020.2
-SYNCTEST=1
+FIFOTEST=1
 FWFT=0
+SYNC=1
 
 all: compile run
 
@@ -36,9 +37,11 @@ compile:
 	-DCOCOTB_SIM=1 \
 	-P fifos_cocowrapper.pDUMP=$(DUMP) \
 	-P fifos_cocowrapper.pFWFT=$(FWFT) \
+	-P fifos_cocowrapper.pSYNC=$(SYNC) \
 	-o $(EXEFILE) \
 	/$(VIVADO_PATH)/$(VIVADO_VERSION)/ids_lite/ISE/verilog/src/glbl.v \
 	../hdl/fifo_sync.v \
+	../hdl/fifo_async.v \
 	fifos_cocowrapper.v \
 
 lint:
@@ -56,7 +59,7 @@ run:
 	COCOTB_RESOLVE_X=RANDOM \
 	TOPLEVEL=fifos_cocowrapper \
 	TOPLEVEL_LANG=verilog \
-	SYNCTEST=$(SYNCTEST) \
+	FIFOTEST=$(FIFOTEST) \
 	MODULE=test_fifo \
 	COCOTB_LOG_LEVEL=$(COCOTB_LOG_LEVEL) \
 	LIBPYTHON_LOC=$(shell cocotb-config --libpython) \

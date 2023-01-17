@@ -1,66 +1,102 @@
 [*]
 [*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Mon Jan 16 20:04:54 2023
+[*] Tue Jan 17 00:28:58 2023
 [*]
-[dumpfile] "results/fifos.fst"
-[dumpfile_mtime] "Mon Jan 16 19:14:33 2023"
-[dumpfile_size] 150242
-[savefile] "fifos.gtkw"
+[dumpfile] "/home/jpnewae/git/fpga-common/sim/results/fifos.fst"
+[dumpfile_mtime] "Tue Jan 17 00:28:02 2023"
+[dumpfile_size] 344547
+[savefile] "/home/jpnewae/git/fpga-common/sim/fifos.gtkw"
 [timestart] 0
 [size] 3781 2098
 [pos] -1 -1
-*-16.554758 1455000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-23.953428 25662000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] fifos_cocowrapper.
-[treeopen] fifos_cocowrapper.U_fifo_sync.
+[treeopen] fifos_cocowrapper.fifo_async_instance.
 [sst_width] 364
-[signals_width] 312
+[signals_width] 484
 [sst_expanded] 1
-[sst_vpaned_height] 660
+[sst_vpaned_height] 661
+@800200
+-testbench
 @820
 fifos_cocowrapper.test_phase[191:0]
 @24
 fifos_cocowrapper.errors[31:0]
 @28
-fifos_cocowrapper.U_fifo_sync.clk
-fifos_cocowrapper.U_fifo_sync.rst_n
-fifos_cocowrapper.U_fifo_sync.wen
-fifos_cocowrapper.U_fifo_sync.ren
-fifos_cocowrapper.U_fifo_sync.empty
-@29
 fifos_cocowrapper.almost_empty
-@28
-fifos_cocowrapper.U_fifo_sync.almost_full
-fifos_cocowrapper.U_fifo_sync.full
-fifos_cocowrapper.U_fifo_sync.underflow
-fifos_cocowrapper.U_fifo_sync.overflow
-fifos_cocowrapper.U_fifo_sync.almost_empty
-@22
-fifos_cocowrapper.U_fifo_sync.wdata[15:0]
-fifos_cocowrapper.U_fifo_sync.rdata[15:0]
 @8024
 fifos_cocowrapper.actual_fill_state[31:0]
-@20000
--
 @24
 fifos_cocowrapper.actual_fill_state[31:0]
+@1000200
+-testbench
+@20000
+-
+@800200
+-write
 @28
-fifos_cocowrapper.U_fifo_sync.full_threshold
+fifos_cocowrapper.wclk
+@29
+fifos_cocowrapper.wen
 @22
-fifos_cocowrapper.U_fifo_sync.wptr[9:0]
-@c00022
-fifos_cocowrapper.U_fifo_sync.rptr[9:0]
+fifos_cocowrapper.wdata[15:0]
 @28
-(0)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(1)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(2)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(3)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(4)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(5)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(6)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(7)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(8)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
-(9)fifos_cocowrapper.U_fifo_sync.rptr[9:0]
+fifos_cocowrapper.almost_full
+fifos_cocowrapper.full
+fifos_cocowrapper.overflow
+@1000200
+-write
+@200
+-
+@800200
+-read
+@28
+fifos_cocowrapper.rclk
+fifos_cocowrapper.ren
+@22
+fifos_cocowrapper.rdata[15:0]
+@28
+fifos_cocowrapper.underflow
+fifos_cocowrapper.almost_empty
+fifos_cocowrapper.empty
+fifos_cocowrapper.clk
+@1000200
+-read
+@24
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.rptr[9:0]
+@c00024
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+@28
+(0)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(1)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(2)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(3)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(4)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(5)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(6)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(7)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(8)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
+(9)fifos_cocowrapper.fifo_async_instance.U_fifo_async.wptr[9:0]
 @1401200
 -group_end
+@200
+-
+@c00024
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+@28
+(0)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(1)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(2)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(3)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(4)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(5)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(6)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(7)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(8)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+(9)fifos_cocowrapper.fifo_async_instance.U_fifo_async.rbin[9:0]
+@1401200
+-group_end
+@24
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.wbin[9:0]
 [pattern_trace] 1
 [pattern_trace] 0

@@ -83,12 +83,12 @@ class Harness(object):
 
 
 class FifoTest(object):
-    def __init__(self, dut, harness, name, fwft, full_threshold, empty_threshold, dut_full, dut_empty, dut_almost_full, dut_almost_empty, dut_write, dut_wdata, dut_read, dut_rdata, dut_overflow, dut_underflow):
-        self.clk = dut.clk
+    def __init__(self, dut, harness, name, fwft, sync, full_threshold, empty_threshold, dut_full, dut_empty, dut_almost_full, dut_almost_empty, dut_write, dut_wdata, dut_read, dut_rdata, dut_overflow, dut_underflow):
         self.dut = dut
         self.harness = harness
         self.name = name
         self.fwft = fwft
+        self.sync = sync
         self.full_threshold = full_threshold
         self.empty_threshold = empty_threshold
         self.dut_full = dut_full
@@ -116,6 +116,12 @@ class FifoTest(object):
         self._reads_allowed = Queue()
         self.actual_fill_state = 0
         self.read_done = False
+        if sync:
+            self.rclk = dut.clk
+            self.wclk = dut.clk
+        else:
+            self.rclk = dut.rclk
+            self.wclk = dut.wclk
 
     def start(self) -> None:
         """Start test thread"""
@@ -157,33 +163,35 @@ class FifoTest(object):
         self.dut._log.debug('%6s _write_thread starting' % self.name)
         for _ in range(self.harness.reps):
             # Run through a few distinct phases:
-             #1- play around the empty point
+            #1- play around the empty point
             self.dut._log.debug('*** %6s TEST 1 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 1" % self.name)
             await self._do_writes(0, 200)
-            while not self.read_done:
-                await ClockCycles(self.clk, 1)
+            await self._wait_read_done()
             # 2- play around the empty threshold point
             self.dut._log.debug('*** %6s TEST 2 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 2" % self.name)
             await self._do_writes(self.empty_threshold, 200)
-            while not self.read_done:
-                await ClockCycles(self.clk, 1)
+            await self._wait_read_done()
             # 3- play around the full threshold point
             self.dut._log.debug('*** %6s TEST 3 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 3" % self.name)
             await self._do_writes(self.full_threshold, 200)
-            while not self.read_done:
-                await ClockCycles(self.clk, 1)
+            await self._wait_read_done()
+            assert self.empty
             # 4- play around the full point
             self.dut._log.debug('*** %6s TEST 4 ***' % self.name)
             self.dut.test_phase.value = self.harness.hexstring("%6s phase 4" % self.name)
             await self._do_writes(512, 200)
-            while not self.read_done:
-                await ClockCycles(self.clk, 1)
-            # 5- test overflow / underflow(?)
-            # THEN we're done!
+            await self._wait_read_done()
+            ## 5- test overflow / underflow(?)
+            ## THEN we're done!
 
+    async def _wait_read_done(self) -> None:
+            while not self.read_done:
+                await ClockCycles(self.rclk, 1)
+            if not self.sync:
+                await ClockCycles(self.rclk, 10) # generous margin for CDC
 
     async def _do_writes(self, target_fill, writes) -> None:
         """ Starting from an empty FIFO, fills it to target_fill, then
@@ -199,6 +207,7 @@ class FifoTest(object):
         """ Execute num writes.
         """
         writes_done = 0
+        await ClockCycles(self.wclk, 1)
         while writes_done < num:
             writes = random.randint(self.min_burst, self.max_burst)
             if writes + writes_done >= num:
@@ -208,42 +217,43 @@ class FifoTest(object):
                 #while self.full:
                     self.dut._log.debug("%6s waiting to write... full=%d, almost_full=%d" % (self.name, self.full, self.almost_full))
                     self.dut_write.value = 0
-                    await ClockCycles(self.clk, 1)
-                    #await self.wait_signal(self.dut_full, 0, self.clk)
+                    await ClockCycles(self.wclk, 1)
                 self.dut._log.debug("%6s good to write! full=%d, almost_full=%d" % (self.name, self.full, self.almost_full))
                 self.dut_write.value = 1
                 wdata = random.randint(0, 2**16-1)
                 self.dut_wdata.value = wdata
                 self._fifo_data_queue.put_nowait(wdata)
                 self.adjust_fill_state(+1)
-                await ClockCycles(self.clk, 1)
+                await ClockCycles(self.wclk, 1)
                 writes_done += 1
                 if writes_done == num:
                     break
             self.dut_write.value = 0
-            await ClockCycles(self.clk, random.randint(self.min_idle, self.max_idle))
+            await ClockCycles(self.wclk, random.randint(self.min_idle, self.max_idle))
 
     async def _read_thread(self) -> None:
         self.dut._log.debug('%6s _read_thread starting' % self.name)
         while True:
             reads_to_do = await self._reads_allowed.get()
+            await ClockCycles(self.rclk, 1)
+            self.dut._log.debug("_read_thread: %d reads to do" % reads_to_do)
             self.read_done = False
             reads_done = 0
             while reads_done < reads_to_do:
-                await self.wait_signal(self.dut_empty, 0, self.clk)
+                await self.wait_signal(self.dut_empty, 0, self.rclk)
                 reads = random.randint(self.min_burst, self.max_burst)
                 for _ in range(reads):
                     while (self.empty or (self.almost_empty and self.dut_read.value)):
                         self.dut_read.value = 0
-                        await ClockCycles(self.clk, 1)
+                        await ClockCycles(self.rclk, 1)
                     self.dut_read.value = 1
                     self.adjust_fill_state(-1)
-                    await ClockCycles(self.clk, 1)
+                    await ClockCycles(self.rclk, 1)
                     reads_done += 1
                     if reads_done == reads_to_do:
                         break
                 self.dut_read.value = 0
-                await ClockCycles(self.clk, random.randint(self.min_idle, self.max_idle))
+                await ClockCycles(self.rclk, random.randint(self.min_idle, self.max_idle))
             self.read_done = True
 
     async def _check_thread(self) -> None:
@@ -253,12 +263,12 @@ class FifoTest(object):
         """
         self.dut._log.debug('%6s _check_thread starting' % self.name)
         while True:
-            await self.wait_signal(self.dut_read, 1, self.clk)
+            await self.wait_signal(self.dut_read, 1, self.rclk)
             if self.fwft:
                 rdata = self.dut_rdata.value
-                await ClockCycles(self.clk, 1)
+                await ClockCycles(self.rclk, 1)
             else:
-                await ClockCycles(self.clk, 1)
+                await ClockCycles(self.rclk, 1)
                 rdata = self.dut_rdata.value
             edata = self._fifo_data_queue.get_nowait()
             if rdata != edata:
@@ -272,7 +282,7 @@ class FifoTest(object):
         """
         self.dut._log.debug('%6s _over_thread starting' % self.name)
         while True:
-            await self.wait_signal(self.dut_overflow, 1, self.clk)
+            await self.wait_signal(self.dut_overflow, 1, self.wclk)
             self.harness.inc_error()
             self.dut._log.error("%6s overflow!" % self.name)
             break
@@ -282,7 +292,7 @@ class FifoTest(object):
         """
         self.dut._log.debug('%6s _under_thread starting' % self.name)
         while True:
-            await self.wait_signal(self.dut_underflow, 1, self.clk)
+            await self.wait_signal(self.dut_underflow, 1, self.rclk)
             self.harness.inc_error()
             self.dut._log.error("%6s underflow!" % self.name)
             break
@@ -322,9 +332,10 @@ async def fifo_test(dut):
     harness = Harness(dut, reps)
     await harness.reset()
 
-    if int(os.getenv('SYNCTEST')):
+    if int(os.getenv('FIFOTEST')):
         synctest = FifoTest(dut, harness, "sync_normal",
                             fwft = dut.pFWFT.value,
+                            sync = dut.pSYNC.value,
                             full_threshold = 384,
                             empty_threshold = 128,
                             dut_full = dut.full,

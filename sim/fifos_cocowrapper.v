@@ -51,6 +51,7 @@ module fifos_cocowrapper(
 
    parameter pDUMP = 0;
    parameter pFWFT = 0;
+   parameter pSYNC = 1;
 
    initial begin
       if (pDUMP) begin
@@ -60,29 +61,61 @@ module fifos_cocowrapper(
    end
 
 
-fifo_sync #(
-    .pDATA_WIDTH                (16),
-    .pDEPTH                     (512),
-    .pFALLTHROUGH               (pFWFT),
-    .pFLOPS                     (1),
-    .pBRAM                      (0),
-    .pDISTRIBUTED               (0)
-) U_fifo_sync (
-    .clk                        (clk                  ),
-    .rst_n                      (rst_n                ),
-    .full_threshold_value       (32'd384              ),
-    .wen                        (wen                  ),
-    .wdata                      (wdata                ),
-    .full                       (full                 ),
-    .almost_full                (almost_full          ),
-    .overflow                   (overflow             ),
-    .full_threshold             (full_threshold       ),
-    .ren                        (ren                  ),
-    .rdata                      (rdata                ),
-    .empty                      (empty                ),
-    .almost_empty               (almost_empty         ),
-    .underflow                  (underflow            )
-);
+generate
+    if (pSYNC) begin : fifo_sync_instance
+        fifo_sync #(
+            .pDATA_WIDTH                (16),
+            .pDEPTH                     (512),
+            .pFALLTHROUGH               (pFWFT),
+            .pFLOPS                     (1),
+            .pBRAM                      (0),
+            .pDISTRIBUTED               (0)
+        ) U_fifo_sync (
+            .clk                        (clk                  ),
+            .rst_n                      (rst_n                ),
+            .full_threshold_value       (32'd384              ),
+            .wen                        (wen                  ),
+            .wdata                      (wdata                ),
+            .full                       (full                 ),
+            .almost_full                (almost_full          ),
+            .overflow                   (overflow             ),
+            .full_threshold             (full_threshold       ),
+            .ren                        (ren                  ),
+            .rdata                      (rdata                ),
+            .empty                      (empty                ),
+            .almost_empty               (almost_empty         ),
+            .underflow                  (underflow            )
+        );
+    end
+    else begin : fifo_async_instance
+        fifo_async #(
+            .pDATA_WIDTH                (16),
+            .pDEPTH                     (512),
+            .pFALLTHROUGH               (pFWFT),
+            .pFLOPS                     (1),
+            .pBRAM                      (0),
+            .pDISTRIBUTED               (0)
+        ) U_fifo_async (
+            .wclk                       (wclk                 ),
+            .rclk                       (rclk                 ),
+            .wrst_n                     (rst_n                ),
+            .rrst_n                     (rst_n                ),
+            .wfull_threshold_value      (32'd384              ),
+            .wen                        (wen                  ),
+            .wdata                      (wdata                ),
+            .wfull                      (full                 ),
+            .walmost_full               (almost_full          ),
+            .woverflow                  (overflow             ),
+            .wfull_threshold            (full_threshold       ),
+            .ren                        (ren                  ),
+            .rdata                      (rdata                ),
+            .rempty                     (empty                ),
+            .ralmost_empty              (almost_empty         ),
+            .runderflow                 (underflow            )
+        );
+    end
+endgenerate
+        
 
 
 endmodule
