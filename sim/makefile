@@ -9,6 +9,7 @@ VIVADO_VERSION=2020.2
 FIFOTEST=1
 FWFT=0
 SYNC=1
+DEPTH=512
 
 all: compile run
 
@@ -37,6 +38,7 @@ compile:
 	-DCOCOTB_SIM=1 \
 	-P fifos_cocowrapper.pDUMP=$(DUMP) \
 	-P fifos_cocowrapper.pFWFT=$(FWFT) \
+	-P fifos_cocowrapper.pDEPTH=$(DEPTH) \
 	-P fifos_cocowrapper.pSYNC=$(SYNC) \
 	-o $(EXEFILE) \
 	/$(VIVADO_PATH)/$(VIVADO_VERSION)/ids_lite/ISE/verilog/src/glbl.v \

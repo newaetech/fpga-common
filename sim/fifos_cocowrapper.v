@@ -53,6 +53,7 @@ module fifos_cocowrapper(
 
    parameter pDUMP = 0;
    parameter pFWFT = 0;
+   parameter pDEPTH = 512;
    parameter pSYNC = 1;
 
    initial begin
@@ -67,7 +68,7 @@ generate
     if (pSYNC) begin : fifo_sync_instance
         fifo_sync #(
             .pDATA_WIDTH                (16),
-            .pDEPTH                     (512),
+            .pDEPTH                     (pDEPTH),
             .pFALLTHROUGH               (pFWFT),
             .pFLOPS                     (1),
             .pBRAM                      (0),
@@ -75,8 +76,8 @@ generate
         ) U_fifo_sync (
             .clk                        (clk                  ),
             .rst_n                      (rst_n                ),
-            .full_threshold_value       (32'd384              ),
-            .empty_threshold_value      (32'd128              ),
+            .full_threshold_value       (full_threshold_value ),
+            .empty_threshold_value      (empty_threshold_value),
             .wen                        (wen                  ),
             .wdata                      (wdata                ),
             .full                       (full                 ),
@@ -104,8 +105,8 @@ generate
             .rclk                       (rclk                 ),
             .wrst_n                     (rst_n                ),
             .rrst_n                     (rst_n                ),
-            .wfull_threshold_value      (32'd384              ),
-            .rempty_threshold_value     (32'd128              ),
+            .wfull_threshold_value      (full_threshold_value ),
+            .rempty_threshold_value     (empty_threshold_value),
             .wen                        (wen                  ),
             .wdata                      (wdata                ),
             .wfull                      (full                 ),

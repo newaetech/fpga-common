@@ -19,7 +19,7 @@ fh.setFormatter(SimLogFormatter())
 root_logger.addHandler(fh)
 
 class Harness(object):
-    def __init__(self, dut, reps):
+    def __init__(self, dut, reps, full_threshold, empty_threshold):
         self.dut = dut
         self.reps = reps
         self.tests = []
@@ -38,6 +38,8 @@ class Harness(object):
         self.dut.wen.value = 0
         self.dut.ren.value = 0
         self.dut.rst_n.value = 1
+        self.dut.full_threshold_value.value = full_threshold
+        self.dut.empty_threshold_value.value = empty_threshold
 
 
     async def reset(self):
@@ -115,7 +117,7 @@ class FifoTest(object):
         self.min_burst = 1
         self.max_idle = 10
         self.min_idle = 1
-        self._fifo_data_queue = Queue() # TODO: add maxsize argument matching FIFO depth
+        self._fifo_data_queue = Queue(maxsize=depth+1)
         self._reads_allowed = Queue()
         self.actual_fill_state = 0
         self.read_done = False
@@ -314,7 +316,6 @@ class FifoTest(object):
     async def _check_thread(self) -> None:
         """ This is done outside of _read_thread to more easily accomodate
         first-word-fall-through vs "normal" configurations.
-        TODO: check full/empty/almost/threshold flags
         """
         self.dut._log.debug('%6s _check_thread starting' % self.name)
         while True:
@@ -430,17 +431,28 @@ class FifoTest(object):
 #@cocotb.test(skip=True)
 async def fifo_test(dut):
     reps  = int(os.getenv('REPS', '2'))
-    # TODO: control empty/full threshold values from command line
-    harness = Harness(dut, reps)
+
+    full_threshold = int(os.getenv('FTHRESH', '0'))
+    empty_threshold = int(os.getenv('ETHRESH', '0'))
+    depth = dut.pDEPTH.value
+    if full_threshold == 0:
+        full_threshold = random.randint(2,depth-2)
+    if empty_threshold == 0:
+        empty_threshold = random.randint(2,depth-2)
+    dut._log.info("FIFO depth: %d" % depth)
+    dut._log.info("Programmable full threshold: %d" % full_threshold)
+    dut._log.info("Programmable empty threshold: %d" % empty_threshold)
+
+    harness = Harness(dut, reps, full_threshold, empty_threshold)
     await harness.reset()
 
     if int(os.getenv('FIFOTEST')):
         synctest = FifoTest(dut, harness, "sync_normal",
                             fwft = dut.pFWFT.value,
                             sync = dut.pSYNC.value,
-                            depth = 512,
-                            full_threshold = 384,
-                            empty_threshold = 128,
+                            depth = depth,
+                            full_threshold = full_threshold,
+                            empty_threshold = empty_threshold,
                             dut_full = dut.full,
                             dut_empty = dut.empty,
                             dut_almost_full = dut.almost_full,
