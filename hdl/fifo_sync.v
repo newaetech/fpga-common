@@ -227,7 +227,8 @@ module fifo_sync #(
 
 
     assign empty = (wptr == rptr);
-    assign almost_empty = (wptr == rptr + 1) || empty;
+    wire [pADDR_WIDTH:0] rptr_plus1 = rptr + 1;
+    assign almost_empty = (wptr == rptr_plus1) || empty;
 
     assign full = ( (wptr[pADDR_WIDTH] != rptr[pADDR_WIDTH]) &&
                     (wptr[pADDR_WIDTH-1:0] == rptr[pADDR_WIDTH-1:0]) );
