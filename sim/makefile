@@ -10,6 +10,9 @@ FIFOTEST=1
 FWFT=0
 SYNC=1
 DEPTH=512
+BRAM=0
+DISTRIBUTED=0
+FLOPS=1
 XILINX_FIFOS=0
 
 all: compile run
@@ -41,6 +44,9 @@ compile:
 	-P fifos_cocowrapper.pFWFT=$(FWFT) \
 	-P fifos_cocowrapper.pDEPTH=$(DEPTH) \
 	-P fifos_cocowrapper.pSYNC=$(SYNC) \
+	-P fifos_cocowrapper.pBRAM=$(BRAM) \
+	-P fifos_cocowrapper.pDISTRIBUTED=$(DISTRIBUTED) \
+	-P fifos_cocowrapper.pFLOPS=$(FLOPS) \
 	-P fifos_cocowrapper.pXILINX_FIFOS=$(XILINX_FIFOS) \
 	-o $(EXEFILE) \
 	../hdl/fifo_sync.v \
@@ -49,6 +55,7 @@ compile:
 	../vivado/xilinx_sync_fifo_fwft_sim_netlist.v \
 	../vivado/xilinx_async_fifo_fwft_sim_netlist.v \
 	../vivado/xilinx_async_fifo_normal_sim_netlist.v \
+	../vivado/xpm_memory.sv \
 	fifos_cocowrapper.v \
 
 lint:

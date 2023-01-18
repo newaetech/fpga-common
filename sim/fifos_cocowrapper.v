@@ -58,6 +58,9 @@ module fifos_cocowrapper(
    parameter pDEPTH = 512;
    parameter pSYNC = 1;
    parameter pXILINX_FIFOS = 0;
+   parameter pBRAM = 0;
+   parameter pDISTRIBUTED = 0;
+   parameter pFLOPS = 1;
 
    initial begin
       if (pDUMP) begin
@@ -76,9 +79,9 @@ generate
             .pDATA_WIDTH                (16),
             .pDEPTH                     (pDEPTH),
             .pFALLTHROUGH               (pFWFT),
-            .pFLOPS                     (1),
-            .pBRAM                      (0),
-            .pDISTRIBUTED               (0)
+            .pFLOPS                     (pFLOPS),
+            .pBRAM                      (pBRAM),
+            .pDISTRIBUTED               (pDISTRIBUTED)
         ) U_fifo_sync (
             .clk                        (clk                  ),
             .rst_n                      (rst_n                ),
@@ -106,9 +109,9 @@ generate
             .pDATA_WIDTH                (16),
             .pDEPTH                     (512),
             .pFALLTHROUGH               (pFWFT),
-            .pFLOPS                     (1),
-            .pBRAM                      (0),
-            .pDISTRIBUTED               (0)
+            .pFLOPS                     (pFLOPS),
+            .pBRAM                      (pBRAM),
+            .pDISTRIBUTED               (pDISTRIBUTED)
         ) U_fifo_async (
             .wclk                       (wclk                 ),
             .rclk                       (rclk                 ),

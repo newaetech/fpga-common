@@ -444,6 +444,12 @@ async def fifo_test(dut):
     dut._log.info("Programmable full threshold: %d" % full_threshold)
     dut._log.info("Programmable empty threshold: %d" % empty_threshold)
 
+    dut._log.info("FLOPs: %d" % dut.pFLOPS.value)
+    dut._log.info("BRAM: %d" % dut.pBRAM.value)
+    dut._log.info("DISTRIBUTED: %d" % dut.pDISTRIBUTED.value)
+    dut._log.info("FWFT: %d" % dut.pFWFT.value)
+    dut._log.info("SYNC: %d" % dut.pSYNC.value)
+
     harness = Harness(dut, reps, full_threshold, empty_threshold)
     await harness.reset()
 

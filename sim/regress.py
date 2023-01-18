@@ -57,6 +57,28 @@ tests.append(dict(name  = 'async_fwft',
              REPS = 4,
              description = 'First-word-fall-through async fifo.'))
 
+tests.append(dict(name  = 'bram',
+             testcase = 'fifo_test',
+             frequency = 1,
+             FWFT = [0,1],
+             SYNC = [0,1],
+             REPS = 4,
+             FLOPS = 0,
+             DISTRIBUTED = 0,
+             BRAM = 1,
+             description = 'FIFO using BRAM storage (sync/fwft parameters randomized.'))
+
+tests.append(dict(name  = 'distributed',
+             testcase = 'fifo_test',
+             frequency = 1,
+             FWFT = [0,1],
+             SYNC = [0,1],
+             REPS = 4,
+             FLOPS = 0,
+             DISTRIBUTED = 1,
+             BRAM = 0,
+             description = 'FIFO using distributed storage (sync/fwft parameters randomized.'))
+
 
 def print_tests():
     print("Available tests:")
