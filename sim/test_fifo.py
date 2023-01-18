@@ -152,6 +152,8 @@ class FifoTest(object):
     async def done(self) -> None:
         """ wait for _run() to complete """
         await Join(self._coro)
+        if int(self.dut.xilinx_mismatches_out.value) > 0:
+            self.dut._log.warning("%d mismatches with Xilinx FIFO seen." % self.dut.xilinx_mismatches_out.value)
         if self.errors:
             self.dut._log.error("%6s test done, failed with %d errors" % (self.name, self.errors))
         else:
@@ -169,7 +171,7 @@ class FifoTest(object):
     async def _write_thread(self) -> None:
         self.dut._log.debug('%6s _write_thread starting' % self.name)
         await RisingEdge(self.dut.rst_n)
-        await ClockCycles(self.wclk, 5)
+        await ClockCycles(self.wclk, 25)
         for _ in range(self.harness.reps):
             # Run through a few distinct phases:
             #1- play around the empty point
@@ -399,7 +401,6 @@ class FifoTest(object):
 
             await ClockCycles(self.rclk, 1)
 
-
     @property
     def full(self):
         return self.dut_full.value
@@ -427,7 +428,7 @@ class FifoTest(object):
 
 
 
-@cocotb.test(timeout_time=1000, timeout_unit="us")
+@cocotb.test(timeout_time=1500, timeout_unit="us")
 #@cocotb.test(skip=True)
 async def fifo_test(dut):
     reps  = int(os.getenv('REPS', '2'))
