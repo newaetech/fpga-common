@@ -32,8 +32,10 @@ module fifo_sync #(
 )(
     input  wire                         clk, 
     input  wire                         rst_n,
+    /* verilator lint_off UNUSED */
     input  wire [31:0]                  full_threshold_value,
     input  wire [31:0]                  empty_threshold_value,
+    /* verilator lint_on UNUSED */
     input  wire                         wen, 
     input  wire [pDATA_WIDTH-1:0]       wdata,
     output wire                         full,
@@ -218,10 +220,10 @@ module fifo_sync #(
             assign rdata = pFALLTHROUGH ? rdata_fwft : rdata_reg;
     
             //debug only:
-            wire [63:0] mem0 = mem[0];
-            wire [63:0] mem1 = mem[1];
-            wire [63:0] mem2 = mem[2];
-            wire [63:0] mem3 = mem[3];
+            //wire [63:0] mem0 = mem[0];
+            //wire [63:0] mem1 = mem[1];
+            //wire [63:0] mem2 = mem[2];
+            //wire [63:0] mem3 = mem[3];
         end // flop_inst
     endgenerate
 

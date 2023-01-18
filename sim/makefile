@@ -55,10 +55,10 @@ lint:
 	verilator --lint-only -Wall \
 	--error-limit 0 \
 	-Wno-PINCONNECTEMPTY \
-	-Wno-ASSIGNDLY \
-	-f cmdfile_coco_nofifo \
+	-Wno-MULTITOP \
+	../hdl/fifo_sync.v \
+	../hdl/fifo_async.v \
 	-D__ICARUS__ \
-	--top-module cwhusky_cw310_top \
 	2>&1 | tee lint.out \
 
 # note that -M and -m arguments must immediately follow vvp, otherwise Python doesn't start!
