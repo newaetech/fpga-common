@@ -65,6 +65,9 @@ lint:
 	-Wno-MULTITOP \
 	../hdl/fifo_sync.v \
 	../hdl/fifo_async.v \
+	../hdl/cdc_pulse.v \
+	../hdl/cdc_bus.v \
+	../hdl/cdc_simple.v \
 	-D__ICARUS__ \
 	2>&1 | tee lint.out \
 
