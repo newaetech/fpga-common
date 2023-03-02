@@ -72,7 +72,7 @@ module uart_cocowrapper(
       .txd                      (txd       ),
       .txd_syn                  (1'b0),
       .txd_data                 (8'd0),
-      .txd_ack                  ()
+      .txd_busy                 ()
    );
 
 endmodule

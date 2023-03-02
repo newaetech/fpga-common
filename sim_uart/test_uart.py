@@ -14,6 +14,8 @@ import math
 import logging
 import os
 
+# NOTE THIS ONLY TESTS Rx, IT DOESN'T TEST Tx!
+
 # Note: this could also be place in individual test functions by replacing root_logger by dut._log.
 root_logger = logging.getLogger()
 logfile = os.getenv('LOGFILE', 'make.log')

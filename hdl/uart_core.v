@@ -50,6 +50,8 @@
 // - support parity detection
 // - support 9 data bits
 // - optionally don't report received data when there is a parity error
+// - change txd_ack into txd_busy, different definition: high while busy
+//   transmitting
 //
 //======================================================================
 
@@ -80,7 +82,7 @@ module uart_core(
                  // Internal transmit interface.
                  input wire          txd_syn,
                  input wire [7 : 0]  txd_data,
-                 output wire         txd_ack
+                 output wire         txd_busy
                 );
 
 
@@ -152,9 +154,9 @@ module uart_core(
   reg          txd_bitrate_ctr_rst;
   reg          txd_bitrate_ctr_inc;
 
-  reg          txd_ack_reg;
-  reg          txd_ack_new;
-  reg          txd_ack_we;
+  reg          txd_busy_reg;
+  reg          txd_busy_new;
+  reg          txd_busy_we;
 
   reg [2 : 0]  etx_ctrl_reg;
   reg [2 : 0]  etx_ctrl_new;
@@ -176,7 +178,7 @@ module uart_core(
   assign txd      = txd_reg;
   assign rxd_syn  = rxd_syn_reg;
   assign rxd_data = rxd_byte_reg;
-  assign txd_ack  = txd_ack_reg;
+  assign txd_busy  = txd_busy_reg;
 
   assign half_bit_rate = {1'b0, bit_rate[15 : 1]};
 
@@ -203,7 +205,7 @@ module uart_core(
           txd_byte_reg        <= 8'h00;
           txd_bit_ctr_reg     <= 5'h0;
           txd_bitrate_ctr_reg <= 16'h0000;
-          txd_ack_reg         <= 0;
+          txd_busy_reg        <= 0;
           etx_ctrl_reg        <= ETX_IDLE;
           parity_bad_mask     <= 0;
         end
@@ -266,9 +268,9 @@ module uart_core(
               txd_bitrate_ctr_reg <= txd_bitrate_ctr_new;
             end
 
-          if (txd_ack_we)
+          if (txd_busy_we)
             begin
-              txd_ack_reg <= txd_ack_new;
+              txd_busy_reg <= txd_busy_new;
             end
 
           if (etx_ctrl_we)
@@ -526,8 +528,8 @@ module uart_core(
       txd_bit_ctr_inc     = 0;
       txd_bitrate_ctr_rst = 0;
       txd_bitrate_ctr_inc = 0;
-      txd_ack_new         = 0;
-      txd_ack_we          = 0;
+      txd_busy_new        = 0;
+      txd_busy_we         = 0;
       etx_ctrl_new        = ETX_IDLE;
       etx_ctrl_we         = 0;
 
@@ -540,11 +542,15 @@ module uart_core(
               begin
                 txd_byte_new        = txd_data;
                 txd_byte_we         = 1;
-                txd_ack_new         = 1;
-                txd_ack_we          = 1;
+                txd_busy_new        = 1;
+                txd_busy_we         = 1;
                 txd_bitrate_ctr_rst = 1;
                 etx_ctrl_new        = ETX_ACK;
                 etx_ctrl_we         = 1;
+              end
+              else begin
+                txd_busy_new  = 0;
+                txd_busy_we   = 1;
               end
           end
 
@@ -555,8 +561,6 @@ module uart_core(
               begin
                 txd_new      = 0;
                 txd_we       = 1;
-                txd_ack_new  = 0;
-                txd_ack_we   = 1;
                 etx_ctrl_new = ETX_START;
                 etx_ctrl_we  = 1;
               end
