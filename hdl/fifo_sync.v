@@ -50,18 +50,19 @@ module fifo_sync #(
     output reg                          underflow
 );
 
-    localparam pADDR_WIDTH = (pDEPTH ==    32)? 5 :
-                             (pDEPTH ==    64)? 6 :
-                             (pDEPTH ==   128)? 7 :
-                             (pDEPTH ==   256)? 8 :
-                             (pDEPTH ==   512)? 9 :
-                             (pDEPTH ==  1024)? 10 :
-                             (pDEPTH ==  2048)? 11 :
-                             (pDEPTH ==  4096)? 12 :
-                             (pDEPTH ==  8192)? 13 :
-                             (pDEPTH == 16384)? 14 :
-                             (pDEPTH == 32768)? 15 :
-                             (pDEPTH == 65536)? 16 : 0;
+    localparam pADDR_WIDTH = (pDEPTH ==     32)? 5 :
+                             (pDEPTH ==     64)? 6 :
+                             (pDEPTH ==    128)? 7 :
+                             (pDEPTH ==    256)? 8 :
+                             (pDEPTH ==    512)? 9 :
+                             (pDEPTH ==   1024)? 10 :
+                             (pDEPTH ==   2048)? 11 :
+                             (pDEPTH ==   4096)? 12 :
+                             (pDEPTH ==   8192)? 13 :
+                             (pDEPTH ==  16384)? 14 :
+                             (pDEPTH ==  32768)? 15 :
+                             (pDEPTH ==  65536)? 16 :
+                             (pDEPTH == 131072)? 17 : 0;
 
     wire [pADDR_WIDTH-1:0] full_threshold_value_trimmed = full_threshold_value[pADDR_WIDTH-1:0];
     wire [pADDR_WIDTH-1:0] empty_threshold_value_trimmed = empty_threshold_value[pADDR_WIDTH-1:0];
