@@ -23,18 +23,18 @@ v2.1](https://chipwhisperer.readthedocs.io/en/latest/simpleserial.html#simpleser
 protocol (SS2) and maps SS2 commands to CW305 register read/writes. This allows
 existing CW305 design which use the SAM3U USB parallel interface to be
 very easily ported to the CW312T-A35 target board. 
-<!---
-Examples are provided
-here for our existing [CW305 AES](vivado/ss2_cw305_aes.xpr), [CW305 AES
-pipeline](vivado/ss2_cw305_aes_pipelined.xpr) and [CW305
-ECC](vivado/ss2_cw305_ecc.xpr) projects.
--->
+
+Examples exist
+for our existing [CW305 AES](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_aes.xpr), 
+[CW305 AES pipeline](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_aes_pipelined.xpr) 
+and [CW305 ECC](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_ecc.xpr) projects.
 
 
 ### SS2 Wrapper Usage
-The SS2 wrapper was designed to minimize the work required to port CW305
-target designs on both the FPGA development side and the host Python side
-(for CW305 designs that follow our example AES/ECC designs). 
+The SS2 wrapper was designed to minimize the work required to port CW305 target
+designs to target platforms which lack the CW305's SAM3U USB parallel
+interface, on both the FPGA development side and the host Python side (for
+CW305 designs that follow our example AES/ECC designs). 
 
 On the Verilog side, refer to the AES and ECC examples linked above to see
 what's needed. As per these examples, the wrapped CW305 top level module's
