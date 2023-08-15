@@ -22,12 +22,16 @@ empty/full status signals).
 v2.1](https://chipwhisperer.readthedocs.io/en/latest/simpleserial.html#simpleserial-v2-1)
 protocol (SS2) and maps SS2 commands to CW305 register read/writes. This allows
 existing CW305 design which use the SAM3U USB parallel interface to be
-very easily ported to the CW312T-A35 target board. 
+very easily ported to the CW312T-A35 and CW312T-iCE40 target boards. 
 
 Examples exist
 for our existing [CW305 AES](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_aes.xpr), 
 [CW305 AES pipeline](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_aes_pipelined.xpr) 
-and [CW305 ECC](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_ecc.xpr) projects.
+and [CW305 ECC](https://github.com/newaetech/chipwhisperer/blob/develop/hardware/victims/cw308_ufo_target/xc7a35/vivado/ss2_cw305_ecc.xpr) projects, ported to the CW312T-A35.
+
+For the iCE40, there is the [CW305
+AES](https://github.com/newaetech/chipwhisperer/tree/develop/hardware/victims/cw308_ufo_target/ice40up5k/ss2_aes_icestorm)
+project.
 
 
 ### SS2 Wrapper Usage
@@ -50,30 +54,36 @@ argument:
 `target = cw.target(scope, cw.targets.CW305, bsfile=<bitstream file>, platform='ss2')`
 
 and everything should "just work". Calls to methods tied to CW305-specific
-hardware which does not exist on the CW312T-A35 (external PLL, programmable
-supply voltage, USB clocking) will result in warnings.
+hardware which does not exist on the CW312T-A35 or CW312T-iCE40 (external PLL,
+programmable supply voltage, USB clocking) will result in warnings.
 
 Look at the CW305 
 [AES](https://github.com/newaetech/chipwhisperer-jupyter/blob/master/demos/PA_HW_CW305_1-Attacking_AES_on_an_FPGA.ipynb)
 and 
 [ECC](https://github.com/newaetech/chipwhisperer-jupyter/blob/master/demos/CW305_ECC/CW305_ECC_part1.ipynb)
 notebooks to see how the same Python code can interact with a CW305 target
-running on either the CW305 natively, or wrapped by SS2 on the CW312T-A35.
+running on either the CW305 natively, or wrapped by SS2 on the CW312T-A35 /
+CW312T-iCE40.
 
 
 ### SS2 Wrapper Resource Overhead
-The SS2 wrapper uses very little FPGA resources: 2% of the A35's slice LUTs
-and less than 1% of its slice registers.
+The SS2 wrapper uses relatively little FPGA resources: 2% of the xc7a35's slice
+LUTs and less than 1% of its slice registers.
+
+On the much smaller iCE40, the overhead is much more significant: 20% of logic
+cells. However, the [basic CW305 AES
+target](https://github.com/newaetech/chipwhisperer/tree/develop/hardware/victims/cw308_ufo_target/ice40up5k/ss2_aes_icestorm)
+does fit (*just barely!*).
 
 
 ### SS2 Wrapper Clocking
-The SS2 wrapper easily meets timing at 100 MHz. However it is intended to be
-clocked at 7.37 MHz since its baud rate (230400 bps) is hard-coded in the
-Verilog source.  This can be easily modified via the `pBIT_RATE` parameter
-in ss2.v, which indicates the number of clock cycles per UART bit. Of course
-it's also possible to scale the clock rate and baud rate together (e.g.
-double the baud rate to 230400 * 2 = 460800 bps and double the clock rate to
-7.37e6 * 2 = 14.74e6 MHz).
+The SS2 wrapper easily meets timing at 100 MHz on Xilinx 7-series. However it
+is intended to be clocked at 7.37 MHz since its baud rate (230400 bps) is
+hard-coded in the Verilog source.  This can be easily modified via the
+`pBIT_RATE` parameter in ss2.v, which indicates the number of clock cycles per
+UART bit. Of course it's also possible to scale the clock rate and baud rate
+together (e.g.  double the baud rate to 230400 * 2 = 460800 bps and double the
+clock rate to 7.37e6 * 2 = 14.74e6 MHz).
 
 
 ### SS2 Wrapper Performance
