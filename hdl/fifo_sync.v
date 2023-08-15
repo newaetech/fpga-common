@@ -73,7 +73,12 @@ module fifo_sync #(
     assign raddr = rptr[pADDR_WIDTH-1:0];
 
     // r/w pointers:
+`ifdef ICE40
+    // without this change, yosys/nextpnr won't infer an ICESTORM_RAM:
+    always @(posedge clk) begin
+`else
     always @(posedge clk or negedge rst_n) begin
+`endif
         if (!rst_n) begin
             wptr <= 0;
             rptr <= 0;
