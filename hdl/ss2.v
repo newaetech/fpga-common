@@ -34,7 +34,8 @@ module ss2 #(
     input  wire         rxd,
     output wire         txd,
 
-    inout  wire [7:0]   dut_data,
+    input  wire [7:0]   dut_data,
+    output reg  [7:0]   dut_wdata,
     output reg  [31:0]  dut_address,
     output reg          dut_rdn,
     output reg          dut_wrn,
@@ -84,8 +85,6 @@ module ss2 #(
 
     reg rx_dut_cen;
     reg dut_cen_r;
-    reg [7:0] dut_wdata;
-    assign dut_data = dut_wrn? 8'bz : dut_wdata;
 
     reg [2:0] tx_state;
     reg tx_crc_init = 1'b0;
