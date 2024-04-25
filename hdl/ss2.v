@@ -90,10 +90,13 @@ module ss2 #(
     reg tx_crc_init = 1'b0;
     reg tx_dut_cen;
 
+    reg ss2_rst = 1'b0;
+    wire combined_reset = ~resetn || ss2_rst;
+
     always @ (posedge clk) begin
-        if (~resetn)
+        if (combined_reset || clear_rx_errors)
             error <= 1'b0;
-        else if ( rx_invalid_command || 
+        else if ((rx_invalid_command || 
                   rx_crc_error || 
                   rx_delimiter_error || 
                  (rx_data_ready && rx_insert_zero) ||
@@ -101,7 +104,7 @@ module ss2 #(
                  ((tx_state == pS_TX_IDLE) && ~fifo_empty) ||
                  fifo_overflow ||
                  fifo_underflow
-                )
+                ) && ~error) // give it an extra cycle if error was just cleared
             error <= 1'b1;
     end
 
@@ -119,9 +122,12 @@ module ss2 #(
                                                              (rx_state != pS_RX_DELIMITER) &&
                                                              (rx_state != pS_RX_WAIT_NUM_BYTES));
 
-    wire writing = (rx_subcommand == 8'h57); // 'W' for Write
-    wire reading = (rx_subcommand == 8'h52); // 'R' for Read
-    wire echo    = (rx_subcommand == 8'h45); // 'E' for Echo
+    wire writing = (rx_command == 8'h23) && (rx_subcommand == 8'h57); // 'W' for Write
+    wire reading = (rx_command == 8'h23) && (rx_subcommand == 8'h52); // 'R' for Read
+    wire echo    = (rx_command == 8'h23) && (rx_subcommand == 8'h45); // 'E' for Echo
+    wire ss2_rst_cmd = (rx_command == 8'h24) && (rx_subcommand == 8'h72); // 'r' for reset
+
+    wire valid_cmd = writing || reading || echo || ss2_rst_cmd;
 
     reg [7:0] dut_read_len;
 
@@ -175,9 +181,9 @@ module ss2 #(
         if (rx_state == pS_RX_IDLE)
             dut_wrn <= 1'b1;
         else if (rx_byte_count == 2) begin
-            if ( (rx_command == 8'h23) && (reading || echo))
+            if (reading || echo || ss2_rst_cmd)
                 dut_wrn <= 1'b1;
-            else if ( (rx_command == 8'h23) && writing)
+            else if (writing)
                 dut_wrn <= 1'b0;
             else
                 dut_wrn <= 1'b1;
@@ -185,15 +191,17 @@ module ss2 #(
 
         if (clear_rx_errors)
             rx_invalid_command <= 1'b0;
-        else if ( (rx_byte_count == 2) && ~((rx_command == 8'h23) && (reading || writing || echo)) )
+        else if ((rx_byte_count == 2) && ~valid_cmd)
             rx_invalid_command <= 1'b1;
 
     end
 
     // Rx FSM: strategy is that FSM deals with COBS, not content
     always @ (posedge clk) begin
-        if (~resetn)
+        if (combined_reset) begin
             rx_state <= pS_RX_IDLE;
+            ss2_rst <= 1'b0;
+        end
         else begin
 
             case (rx_state)
@@ -202,6 +210,7 @@ module ss2 #(
                     rx_frame_done <= 1'b0;
                     rx_crc_init <= 1'b1;
                     rx_delimiter_error <= 1'b0;
+                    ss2_rst <= 1'b0;
                     if (rx_data_ready && (rx_data_byte != 0)) // ignore extra frame delimiters
                         rx_state <= pS_RX_NUM_BYTES;
                 end
@@ -246,6 +255,8 @@ module ss2 #(
                         rx_state <= pS_RX_IDLE;
                         if (rx_data != 0)
                             rx_delimiter_error <= 1'b1;
+                        else if (ss2_rst_cmd)
+                            ss2_rst <= 1'b1;
                         else
                             rx_frame_done <= 1'b1;
                     end
@@ -349,8 +360,10 @@ module ss2 #(
 
     // Tx FSM: strategy is that FSM deals with COBS, not content
     always @ (posedge clk) begin
-        if (~resetn)
+        if (combined_reset) begin
             tx_state <= pS_TX_IDLE;
+            clear_rx_errors <= 1'b1;
+        end
         else begin
 
             case (tx_state)
@@ -468,7 +481,7 @@ module ss2 #(
 
     uart_core U_uart (
        .clk                      (clk),
-       .reset_n                  (resetn),
+       .reset_n                  (~combined_reset),
        // Configuration inputs
        .bit_rate                 (pBIT_RATE),
        .data_bits                (pDATA_BITS),
@@ -501,7 +514,7 @@ module ss2 #(
         .pDISTRIBUTED           (0)
     ) U_tx_fifo (
         .clk                    (clk                  ),
-        .rst_n                  (resetn               ),
+        .rst_n                  (~combined_reset      ),
         .full_threshold_value   (                     ),
         .empty_threshold_value  (                     ),
         .wen                    (fifo_wen             ),
@@ -519,6 +532,57 @@ module ss2 #(
     );
 
     assign dut_cen = (reading)? tx_dut_cen : rx_dut_cen;
+
+    // to help debug:
+    wire [8:0] errors;
+    assign errors[0] = rx_invalid_command;
+    assign errors[1] = rx_crc_error;
+    assign errors[2] = rx_delimiter_error;
+    assign errors[3] = rx_data_ready && rx_insert_zero;
+    assign errors[4] = fifo_underflow;
+    assign errors[5] = fifo_overflow;
+    assign errors[6] = tx_state == pS_TX_IDLE && ~fifo_empty;
+    assign errors[7] = fifo_overflow;
+    assign errors[8] = fifo_underflow;
+
+    `ifdef ILA_SS2
+
+       ila_ss2 U_ila_ss2 (
+           .clk         (clk ),
+           .probe0      (rxd      ),
+           .probe1      (txd      ),
+           .probe2      (error    ),
+
+           .probe3      (errors[0] ),
+           .probe4      (errors[1] ),
+           .probe5      (errors[2] ),
+           .probe6      (errors[3] ),
+           .probe7      (errors[4] ),
+           .probe8      (errors[5] ),
+           .probe9      (errors[6] ),
+           .probe10     (errors[7] ),
+           .probe11     (errors[8] ),
+
+           .probe12     (rx_state),             // 2:0
+           .probe13     (rx_command),           // 7:0
+           .probe14     (rx_subcommand),        // 7:0
+           .probe15     (rx_len),               // 7:0
+           .probe16     (calculated_crc),       // 7:0
+           .probe17     (rx_data_byte),         // 7:0
+           .probe18     (rx_ack),
+
+           .probe19     (tx_state),             // 2:0
+           .probe20     (tx_data_byte),         // 7:0
+           .probe21     (tx_busy),
+
+           .probe22     (combined_reset),
+           .probe23     (clear_rx_errors),
+           .probe24     (rx_byte_count),        // 7:0
+           .probe25     (ss2_rst),
+           .probe26     (1'b0)
+       );
+    `endif
+
 
 endmodule
 `default_nettype wire

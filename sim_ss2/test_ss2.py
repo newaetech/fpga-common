@@ -104,6 +104,7 @@ class SS2Test(object):
         self.uart_rx_queue = Queue()
         self.uncobbed_rx_queue = Queue()
         self.command_queue = Queue()
+        # TODO: test parity error, and/or wrong baud rate (and recovering from such)
         self._uart_config = UARTConfig(baud=baud, 
                                        parity=UARTParity.NONE,
                                        bits=8,
@@ -180,9 +181,8 @@ class SS2Test(object):
                 await self._uart_drv.send(0)
                 await ClockCycles(self.dut.clk, random.randint(0,100))
 
-
             # command: (TODO: illegal commands)
-            command = random.choices(['read', 'write', 'echo'], weights=[2,2,1])[0]
+            command = random.choices(['read', 'write', 'echo', 'ss2_rst'], weights=[4,4,2,1])[0]
             msg = []
             msg.append(35)
             # subcommand:
@@ -209,6 +209,16 @@ class SS2Test(object):
                 expected_crc = self.harness.SS2._calc_crc(expected_data[1:]) # omit leading zero, CRC, trailing zero
                 expected_data.extend([expected_crc, 0x00])
                 self.command_queue.put_nowait(expected_data)
+
+            elif command == 'ss2_rst':
+                msg[0] = 36
+                msg.append(0x72)
+                dlen = 1
+                msg.append(dlen)
+                payload = [random.randint(0,255)]
+                msg.extend(payload)
+                self.dut._log.info("Msg %d: ss2_rst command, payload: %s" % (i, self.harness.hexlist(payload)))
+                # NOTE: no response here!
 
             elif command in ['read', 'write']:
                 reg = random.choice(self.harness.registers)
@@ -257,6 +267,7 @@ class SS2Test(object):
             else:
                 raise ValueError
 
+            # TODO: generate CRC error
             crc = self.harness.SS2._calc_crc(msg)
             self.dut._log.info("Msg %d CRC byte: %02x (msg = %s)" % (i, crc, self.harness.hexlist(msg)))
             msg.append(crc)
@@ -274,6 +285,8 @@ class SS2Test(object):
                 #await ClockCycles(self.dut.clk, self.harness.bit_clocks*10)
             self.dut._log.info("Stuffed message %d: %s" % (i, self.harness.hexlist(stuffed_msg)))
             #self.dut._log.info("Sending stuffed message: %s" % stuffed_msg)
+            if command == 'ss2_rst': # give time to recover from reset
+                await ClockCycles(self.dut.clk, random.randint(50,100))
 
 
     async def _check_response(self) -> None:

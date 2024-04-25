@@ -95,7 +95,7 @@ and the number and size of the target reads and writes that are required.
 
 
 ### SS2 Wrapper Commands
-All SS2 wrapper commands use 0x23 as a command byte. The SS2 wrapper
+Most SS2 wrapper commands use 0x23 as a command byte. The SS2 wrapper
 supports 3 subcommands:
 
 * write: `cmd=0x23, scmd=0x57, dlen=[size of data], data=[4-byte address, write data]`
@@ -106,7 +106,13 @@ The purpose of the echo command is to test that UART communication is up: it
 is handled automatically by the SS2 wrapper without involving the underlying
 target.
 
-All this is tested in simulation by the [SS2 testbench](sim/test_ss2.py).
+These commands are exhaustively tested in simulation by the [SS2 testbench](sim/test_ss2.py).
+
+There is also a command to reset the SS2 wrapper (and only the SS2 wrapper):
+* ss2\_reset: `cmd=0x24, scmd=0x72, dlen=1, data=[single byte (not used)]`
+
+(This is not yet properly validated in simulation, but on-target testing shows
+that it works as intended.)
 
 If you use
 [CW305.py](../../../../software/chipwhisperer/capture/targets/CW305.py) then
