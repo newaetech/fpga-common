@@ -49,7 +49,9 @@ module fifo_async #(
     output reg                          runderflow
 );
 
-    localparam pADDR_WIDTH = (pDEPTH ==     32)? 5 :
+    localparam pADDR_WIDTH = (pDEPTH ==      8)? 3 :
+                             (pDEPTH ==     16)? 4 :
+                             (pDEPTH ==     32)? 5 :
                              (pDEPTH ==     64)? 6 :
                              (pDEPTH ==    128)? 7 :
                              (pDEPTH ==    256)? 8 :
