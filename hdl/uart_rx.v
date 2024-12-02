@@ -35,14 +35,14 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // *** summary of NewAE modifications:
-// - remove Tx code
 // - change FSM coding style
 // - support parity detection
 // - support 9 data bits
 // - optionally don't report received data when there is a parity error
+// - remove Tx code
+// - timing closure optimizations
 //
 //======================================================================
-
 
 module uart_rx(
     input wire          clk,
@@ -63,6 +63,12 @@ module uart_rx(
 
     output wire [2:0]   state
 );
+
+/* 
+NOTE: the signal widths above work for our use cases, but should be
+parameterized at some point.
+max bit_rate value supported: 1 / min baud rate / min clock period.
+*/
 
     parameter pS_IDLE   = 0;
     parameter pS_START  = 1;
