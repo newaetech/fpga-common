@@ -37,12 +37,14 @@ class Harness(object):
         self.dut._log.info("seed: %d" % int(os.getenv('RANDOM_SEED', '0')))
         self.clock = Clock(dut.clk, self.period, units="ns")
         clk_thread = cocotb.start_soon(self.clock.start())
+        error_thread = cocotb.start_soon(self.error_watch())
         self.bit_clocks = int( 1/(self.baud) / (self.period * 1e-9) )
         #  initialize all DUT input values:
         self.dut.bit_rate.value = self.bit_clocks
         self.dut.data_bits.value = data_bits
         self.dut.stop_bits.value = stop_bits
         self.dut.parity_bit.value = parity_bit
+        self.uart_error = self.dut.error_reg
         if parity_ignored:
             self.dut.parity_enabled.value = 0
         else:
@@ -88,6 +90,13 @@ class Harness(object):
         for i,j in enumerate(string[:max_chars]):
             data += (ord(j) << ((max_chars-1-i)*8))
         return data
+
+    async def error_watch(self) -> None:
+        while True:
+            await RisingEdge(self.uart_error)
+            self.dut._log.error('Error: mismatch between uart_core.v and uart_rx.v')
+            self.inc_error()
+
 
 
 class UartTest(object):
@@ -194,7 +203,6 @@ class UartTest(object):
 
 
 @cocotb.test(timeout_time=100000, timeout_unit="us")
-#@cocotb.test(skip=True)
 async def uart_test(dut):
     reps  = int(os.getenv('REPS', '2'))
     baud  = int(os.getenv('BAUD', '115200'))

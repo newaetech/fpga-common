@@ -45,6 +45,7 @@ compile:
 	-P uart_cocowrapper.pDUMP=$(DUMP) \
 	-o $(EXEFILE) \
 	../hdl/uart_core.v \
+	../hdl/uart_rx.v \
 	$(VIVADO_PATH)/$(VIVADO_VERSION)/ids_lite/ISE/verilog/src/glbl.v \
 	uart_cocowrapper.v \
 
@@ -54,6 +55,7 @@ lint:
 	-Wno-PINCONNECTEMPTY \
 	-Wno-MULTITOP \
 	../hdl/uart_core.v \
+	../hdl/uart_rx.v \
 	-D__ICARUS__ \
 	2>&1 | tee lint.out \
 

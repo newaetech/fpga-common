@@ -75,5 +75,33 @@ module uart_cocowrapper(
       .txd_busy                 ()
    );
 
+   wire [8:0] rx2_data;
+   wire rx2_syn;
+   wire data_error = rxd_data ^ rx2_data;
+   wire syn_error = rxd_syn ^ rx2_syn;
+   reg error_reg = 1'b0;
+   always @(posedge clk) error_reg <= data_error || syn_error;
+
+
+   reg rx2_ack = 1'b0;
+   always @(posedge clk) rx2_ack <= rx2_syn;
+
+   uart_rx U_new_dut (
+      .clk                      (clk       ),
+      .reset_n                  (reset_n   ),
+      .bit_rate                 (bit_rate  ),
+      .data_bits                (data_bits ),
+      .stop_bits                (stop_bits ),
+      .parity_bit               (parity_bit),
+      .parity_enabled           (parity_enabled),
+      .parity_accept_errors     (parity_accept_errors),
+      .rxd                      (rxd       ),
+      .syn                      (rx2_syn   ),
+      .data                     (rx2_data  ),
+      .ack                      (rx2_ack   ),
+      .state                    (          )
+   );
+
+
 endmodule
 `default_nettype wire
