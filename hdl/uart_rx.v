@@ -77,48 +77,53 @@ module uart_rx(
     reg [2:0] state_reg = pS_IDLE;
     reg parity_bad;
     reg syn_reg = 1'b0;
+    reg reset_bitrate_ctr = 1'b0;
 
     wire [15:0] half_bit_rate = {1'b0, bit_rate[15:1]};
+    reg  [15:0] stop_bits_total;
     assign state = state_reg;
     assign syn = syn_reg;
 
 
     always @ (posedge clk) begin
         rxd_reg <= rxd;
+        stop_bits_total <= bit_rate * stop_bits;
+        if (state_reg == pS_IDLE)
+            bitrate_ctr <= 0;
+        else if (reset_bitrate_ctr)
+            bitrate_ctr <= 1;
+        else
+            bitrate_ctr <= bitrate_ctr + 1;
+
         case (state_reg)
             pS_IDLE: begin
                 syn_reg <= 1'b0;
                 parity_bad <= 1'b0;
+                reset_bitrate_ctr <= 1'b0;
                 if (!rxd_reg) begin // Possible start bit detected.
                     bit_ctr <= 0;
-                    bitrate_ctr <= 0;
                     state_reg <= pS_START;
                 end
             end
 
             pS_START: begin
                 data <= 9'b0;
-                bitrate_ctr <= bitrate_ctr + 1;
                 if (rxd_reg) 
-                    // Just a glitch
-                    state_reg <= pS_IDLE;
+                    state_reg <= pS_IDLE; // Just a glitch
                 else if (bitrate_ctr == half_bit_rate) begin
                     // start bit assumed. We start sampling data.
+                    reset_bitrate_ctr <= 1'b1;
                     bit_ctr <= 0;
-                    bitrate_ctr <= 0;
                     state_reg <= pS_BITS;
-                    //data <= 9'b0;
                 end
             end
 
 
             pS_BITS: begin
-                if (bitrate_ctr < bit_rate)
-                    bitrate_ctr <= bitrate_ctr + 1;
-                else begin
+                if (bitrate_ctr == bit_rate) begin
+                    reset_bitrate_ctr <= 1'b1;
                     data <= {rxd_reg, data[8:1]};
                     bit_ctr <= bit_ctr + 1;
-                    bitrate_ctr <= 0;
                     if (bit_ctr == data_bits - 1) begin
                         if (parity_enabled)
                             state_reg <= pS_PARITY;
@@ -126,29 +131,32 @@ module uart_rx(
                             state_reg <= pS_STOP;
                     end
                 end
+                else
+                    reset_bitrate_ctr <= 1'b0;
             end
 
             pS_PARITY: begin
-                bitrate_ctr <= bitrate_ctr + 1;
                 if (bitrate_ctr == bit_rate) begin
-                    bitrate_ctr <= 0;
+                    reset_bitrate_ctr <= 1'b1;
                     state_reg <= pS_STOP;
                     if (^{data, rxd_reg} != parity_bit)
                         parity_bad <= 1;
-                    //else
-                    //    parity_bad <= 0;
                 end
+                else
+                    reset_bitrate_ctr <= 1'b0;
             end
 
             pS_STOP: begin
                 if (parity_bad && ~parity_accept_errors)
                     state_reg <= pS_IDLE;
                 else begin
-                    bitrate_ctr <= bitrate_ctr + 1;
-                    if (bitrate_ctr == bit_rate * stop_bits) begin
+                    if (bitrate_ctr == stop_bits_total) begin
+                        reset_bitrate_ctr <= 1'b1;
                         syn_reg <= 1'b1;
                         state_reg <= pS_SYN;
                     end
+                    else
+                        reset_bitrate_ctr <= 1'b0;
                 end
             end
 
