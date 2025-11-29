@@ -72,14 +72,24 @@ module fifo_sync #(
     assign waddr = wptr[pADDR_WIDTH-1:0];
     assign raddr = rptr[pADDR_WIDTH-1:0];
 
+    // synchronize reset:
+    // Xilinx FIFOs used in Husky have an asynchronous reset that is
+    // synchronized internally, so we take the same approach here
+    wire srst_n;
+    async_resetFFstyle2 U_rst_sync (
+        .clk            (clk),
+        .asyncrst_n     (rst_n),
+        .rst_n          (srst_n)
+    );
+
     // r/w pointers:
 `ifdef ICE40
     // without this change, yosys/nextpnr won't infer an ICESTORM_RAM:
     always @(posedge clk) begin
 `else
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge srst_n) begin
 `endif
-        if (!rst_n) begin
+        if (!srst_n) begin
             wptr <= 0;
             rptr <= 0;
         end
@@ -92,8 +102,8 @@ module fifo_sync #(
     end
 
     // over/underflow flags:
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge srst_n) begin
+        if (!srst_n) begin
             overflow <= 1'b0;
             underflow <= 1'b0;
         end
@@ -140,8 +150,8 @@ module fifo_sync #(
                 assign raddr_fwft = ren? next_raddr : current_raddr;
                 assign rdata = memout;
                 assign mem_rd = (pFALLTHROUGH)? ~empty : ren;
-                always @(posedge clk or negedge rst_n) begin
-                    if (~rst_n) begin
+                always @(posedge clk or negedge srst_n) begin
+                    if (~srst_n) begin
                         current_raddr <= 0;
                         next_raddr <= 1;
                     end
@@ -203,7 +213,7 @@ module fifo_sync #(
                     .injectdbiterra                     (1'b0),     // 1-bit input: Controls double bit error injection on input data when ECC enabled (Error injection capability is not available in "decode_only" mode).
                     .injectsbiterra                     (1'b0),     // 1-bit input: Controls single bit error injection on input data when ECC enabled (Error injection capability is not available in "decode_only" mode).
                     .regceb                             (1'b1),     // 1-bit input: Clock Enable for the last register stage on the output data path.
-                    .rstb                               (~rst_n),    // 1-bit input: Reset signal for the final port B output register stage.  Synchronously resets output port doutb to the value specified by parameter READ_RESET_VALUE_B.
+                    .rstb                               (~srst_n),    // 1-bit input: Reset signal for the final port B output register stage.  Synchronously resets output port doutb to the value specified by parameter READ_RESET_VALUE_B.
                     .sleep                              (1'b0),     // 1-bit input: sleep signal to enable the dynamic power saving feature.
                     .wea                                (wen)       // WRITE_DATA_WIDTH_A-bit input: Write enable vector for port A input data port dina. 1 bit wide when word-wide writes are used. In byte-wide write configurations, each bit controls the writing one byte of dina to address addra. For example, to synchronously write only bits [15-8] of dina when WRITE_DATA_WIDTH_A is 32, wea would be 4'b0010.
                 );

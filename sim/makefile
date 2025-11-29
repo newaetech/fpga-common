@@ -51,6 +51,7 @@ compile:
 	-o $(EXEFILE) \
 	../hdl/fifo_sync.v \
 	../hdl/fifo_async.v \
+	../hdl/async_resetFFstyle2.v \
 	../vivado/xilinx_sync_fifo_standard_sim_netlist.v \
 	../vivado/xilinx_sync_fifo_fwft_sim_netlist.v \
 	../vivado/xilinx_async_fifo_fwft_sim_netlist.v \
@@ -65,6 +66,7 @@ lint:
 	-Wno-MULTITOP \
 	../hdl/fifo_sync.v \
 	../hdl/fifo_async.v \
+	../hdl/async_resetFFstyle2.v \
 	../hdl/cdc_pulse.v \
 	../hdl/cdc_bus.v \
 	../hdl/cdc_simple.v \

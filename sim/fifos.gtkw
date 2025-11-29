@@ -1,16 +1,17 @@
 [*]
-[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
-[*] Tue Jan 17 20:08:21 2023
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Fri Nov 28 19:54:39 2025
 [*]
 [dumpfile] "/home/jpnewae/git/fpga-common/sim/results/fifos.fst"
-[dumpfile_mtime] "Tue Jan 17 20:05:26 2023"
-[dumpfile_size] 492460
+[dumpfile_mtime] "Fri Nov 28 19:53:17 2025"
+[dumpfile_size] 503758
 [savefile] "/home/jpnewae/git/fpga-common/sim/fifos.gtkw"
 [timestart] 0
-[size] 3781 2098
+[size] 3840 2089
 [pos] -1 -1
-*-25.097952 27600000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-16.273098 390000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] fifos_cocowrapper.
+[treeopen] fifos_cocowrapper.fifo_async_instance.
 [sst_width] 364
 [signals_width] 670
 [sst_expanded] 1
@@ -35,6 +36,19 @@ fifos_cocowrapper.rst_n
 -testbench
 @20000
 -
+@800201
+-resets
+@29
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.rrst_n
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.wrst_n
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.srrst_n
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.swrst_n
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.rclk
+fifos_cocowrapper.fifo_async_instance.U_fifo_async.wclk
+@1000201
+-resets
+@200
+-
 @800200
 -write
 @28
@@ -45,9 +59,7 @@ fifos_cocowrapper.wdata[15:0]
 @28
 fifos_cocowrapper.almost_full
 fifos_cocowrapper.full
-@29
 fifos_cocowrapper.full_threshold
-@28
 fifos_cocowrapper.overflow
 @1000200
 -write

@@ -16,6 +16,7 @@ Changes made:
     - parameterize depth instead of address width
     - make "first word fall through" an option
     - add Xilinx xpm_memory_sdpram instantiation
+    - reset synchronization
 
 *************************************************************************/
 
@@ -80,26 +81,42 @@ module fifo_async #(
     wire [pDATA_WIDTH-1:0] rdata_fwft;
     reg  [pDATA_WIDTH-1:0] rdata_reg;
 
+    // New: synchronize reset:
+    // Xilinx FIFOs used in Husky have an asynchronous reset that is
+    // synchronized internally, so we take the same approach here
+    wire swrst_n;
+    wire srrst_n;
+    async_resetFFstyle2 U_wrst_sync (
+        .clk            (wclk),
+        .asyncrst_n     (wrst_n),
+        .rst_n          (swrst_n)
+    );
+    async_resetFFstyle2 U_rrst_sync (
+        .clk            (rclk),
+        .asyncrst_n     (rrst_n),
+        .rst_n          (srrst_n)
+    );
+
     // New: overflow flag
-    always @(posedge wclk or negedge wrst_n)
-        if (!wrst_n) woverflow <= 1'b0;
+    always @(posedge wclk or negedge swrst_n)
+        if (!swrst_n) woverflow <= 1'b0;
         else if (wen && wfull) woverflow <= 1'b1;
         else woverflow <= 1'b0;
 
     // New: underflow flag
-    always @(posedge rclk or negedge rrst_n)
-        if (!rrst_n) runderflow <= 1'b0;
+    always @(posedge rclk or negedge srrst_n)
+        if (!srrst_n) runderflow <= 1'b0;
         else if (ren && rempty) runderflow <= 1'b1;
         else runderflow <= 1'b0;
 
     //sync_r2w module in original code:
-    always @(posedge wclk or negedge wrst_n)
-        if (!wrst_n) {wq2_rptr,wq1_rptr} <= 0;
+    always @(posedge wclk or negedge swrst_n)
+        if (!swrst_n) {wq2_rptr,wq1_rptr} <= 0;
         else {wq2_rptr,wq1_rptr} <= {wq1_rptr,rptr};
 
     //sync_w2r module in original code:
-    always @(posedge rclk or negedge rrst_n)
-        if (!rrst_n) {rq2_wptr,rq1_wptr} <= 0;
+    always @(posedge rclk or negedge srrst_n)
+        if (!srrst_n) {rq2_wptr,rq1_wptr} <= 0;
         else {rq2_wptr,rq1_wptr} <= {rq1_wptr,wptr};
 
 
@@ -134,8 +151,8 @@ module fifo_async #(
                 assign raddr_fwft = ren? next_raddr : current_raddr;
                 assign rdata = memout;
                 assign mem_rd = (pFALLTHROUGH)? ~rempty : ren;
-                always @(posedge rclk or negedge rrst_n) begin
-                    if (~rrst_n) begin
+                always @(posedge rclk or negedge srrst_n) begin
+                    if (~srrst_n) begin
                         current_raddr <= 0;
                         next_raddr <= 1;
                     end
@@ -197,7 +214,7 @@ module fifo_async #(
                     .injectdbiterra                     (1'b0),     // 1-bit input: Controls double bit error injection on input data when ECC enabled (Error injection capability is not available in "decode_only" mode).
                     .injectsbiterra                     (1'b0),     // 1-bit input: Controls single bit error injection on input data when ECC enabled (Error injection capability is not available in "decode_only" mode).
                     .regceb                             (1'b1),     // 1-bit input: Clock Enable for the last register stage on the output data path.
-                    .rstb                               (~rrst_n),  // 1-bit input: Reset signal for the final port B output register stage.  Synchronously resets output port doutb to the value specified by parameter READ_RESET_VALUE_B.
+                    .rstb                               (~srrst_n),  // 1-bit input: Reset signal for the final port B output register stage.  Synchronously resets output port doutb to the value specified by parameter READ_RESET_VALUE_B.
                     .sleep                              (1'b0),     // 1-bit input: sleep signal to enable the dynamic power saving feature.
                     .wea                                (wen)       // WRITE_DATA_WIDTH_A-bit input: Write enable vector for port A input data port dina. 1 bit wide when word-wide writes are used. In byte-wide write configurations, each bit controls the writing one byte of dina to address addra. For example, to synchronously write only bits [15-8] of dina when WRITE_DATA_WIDTH_A is 32, wea would be 4'b0010.
                 );
@@ -226,8 +243,8 @@ module fifo_async #(
 
     // rptr_empty module in original code:
     // GRAYSTYLE2 pointer
-    always @(posedge rclk or negedge rrst_n)
-        if (!rrst_n) {rbin, rptr} <= 0;
+    always @(posedge rclk or negedge srrst_n)
+        if (!srrst_n) {rbin, rptr} <= 0;
         else {rbin, rptr} <= {rbinnext, rgraynext};
     // Memory read-address pointer (okay to use binary to address memory)
     assign raddr = rbin[pADDR_WIDTH-1:0];
@@ -237,23 +254,23 @@ module fifo_async #(
     // FIFO empty when the next rptr == synchronized wptr or on reset
     //---------------------------------------------------------------
     assign rempty_val = (rgraynext == rq2_wptr);
-    always @(posedge rclk or negedge rrst_n)
-        if (!rrst_n) rempty <= 1'b1;
+    always @(posedge rclk or negedge srrst_n)
+        if (!srrst_n) rempty <= 1'b1;
         else rempty <= rempty_val;
 
     // New: almost empty flag
     assign rbinnext_plus1 = rbinnext + 1;
     assign rgraynext_plus1 = (rbinnext_plus1>>1) ^ rbinnext_plus1;
     assign ralmost_empty_val = (rgraynext_plus1 == rq2_wptr);
-    always @(posedge rclk or negedge rrst_n)
-        if (!rrst_n) ralmost_empty <= 1'b1;
+    always @(posedge rclk or negedge srrst_n)
+        if (!srrst_n) ralmost_empty <= 1'b1;
         else ralmost_empty <= ralmost_empty_val || rempty_val;
 
 
     // wptr_full module in original code:
     // GRAYSTYLE2 pointer
-    always @(posedge wclk or negedge wrst_n)
-        if (!wrst_n) {wbin, wptr} <= 0;
+    always @(posedge wclk or negedge swrst_n)
+        if (!swrst_n) {wbin, wptr} <= 0;
         else {wbin, wptr} <= {wbinnext, wgraynext};
     // Memory write-address pointer (okay to use binary to address memory)
     assign waddr = wbin[pADDR_WIDTH-1:0];
@@ -267,8 +284,8 @@ module fifo_async #(
     //------------------------------------------------------------------
     assign wfull_val = (wgraynext=={~wq2_rptr[pADDR_WIDTH:pADDR_WIDTH-1],
                                      wq2_rptr[pADDR_WIDTH-2:0]});
-    always @(posedge wclk or negedge wrst_n)
-        if (!wrst_n) wfull <= 1'b0;
+    always @(posedge wclk or negedge swrst_n)
+        if (!swrst_n) wfull <= 1'b0;
         else wfull <= wfull_val;
 
     // New: almost full flag
@@ -276,8 +293,8 @@ module fifo_async #(
     assign wgraynext_plus1 = (wbinnext_plus1>>1) ^ wbinnext_plus1;
     assign walmost_full_val = (wgraynext_plus1=={~wq2_rptr[pADDR_WIDTH:pADDR_WIDTH-1],
                                                   wq2_rptr[pADDR_WIDTH-2:0]});
-    always @(posedge wclk or negedge wrst_n)
-        if (!wrst_n) walmost_full <= 1'b0;
+    always @(posedge wclk or negedge swrst_n)
+        if (!swrst_n) walmost_full <= 1'b0;
         else walmost_full <= walmost_full_val || wfull;
 
 
@@ -299,8 +316,8 @@ module fifo_async #(
     wire [pADDR_WIDTH+1:0] adjust_wt2 = {1'b1, wbin};
     wire case2 = (~wbin[pADDR_WIDTH] && wq2_rptr_bin_r[pADDR_WIDTH]);
 
-    always @(posedge wclk or negedge wrst_n) begin
-        if (!wrst_n) begin
+    always @(posedge wclk or negedge swrst_n) begin
+        if (!swrst_n) begin
             wfull_threshold <= 1'b0;
             wq2_rptr_bin_r <= 0;
         end
@@ -323,8 +340,8 @@ module fifo_async #(
     wire rcase2 = (~rq2_wptr_bin_r[pADDR_WIDTH] && rbin[pADDR_WIDTH]);
     wire [pADDR_WIDTH+1:0] adjust_r_wt1 = {1'b0, rq2_wptr_bin_r};
     wire [pADDR_WIDTH+1:0] adjust_r_wt2 = {1'b1, rq2_wptr_bin_r};
-    always @(posedge rclk or negedge rrst_n) begin
-        if (!rrst_n) begin
+    always @(posedge rclk or negedge srrst_n) begin
+        if (!srrst_n) begin
             rempty_threshold <= 1'b0;
             rq2_wptr_bin_r <= 0;
         end
